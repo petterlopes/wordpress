@@ -1,0 +1,105 @@
+ yum update -y
+
+ yum install httpd mariadb mariadb-server php php-common php-mysql php-gd php-xml php-mbstring php-mcrypt php-xmlrpc unzip wget -y
+   
+   
+
+ systemctl start httpd
+ systemctl start mariadb
+ systemctl enable httpd
+ systemctl enable mariadb
+
+ -------- instalar o php7 --------------------------------------------------------------------------------
+sudo yum remove php-cli mod_php php-common
+sudo yum install mod_php70u php70u-cli php70u-mysqlnd
+sudo apachectl restart
+    
+ 
+------------------------------ banco de dados ------------------------------------------------------------
+mysql_secure_installation
+
+Set root password? [Y/n] n
+Remove anonymous users? [Y/n] y
+Disallow root login remotely? [Y/n] y
+Remove test database and access to it? [Y/n] y
+Reload privilege tables now? [Y/n] y
+
+
+mysql -u root -p
+MariaDB [(none)]>CREATE DATABASE your-db-name;
+MariaDB [(none)]>GRANT ALL PRIVILEGES on your-db-name.* to 'your-db-name'@'localhost' identified by 'your-passwd';
+MariaDB [(none)]>FLUSH PRIVILEGES;
+MariaDB [(none)]>exit
+
+-----------------------------------------------------------------------------------------------------------
+
+mkdir /arquivos
+cd /arquivos
+wget http://wordpress.org/latest.tar.gz
+tar -xzvf latest.tar.gz
+ cp -avr wordpress/* /var/www/html/
+ mkdir /var/www/html/wp-content/uploads
+
+ chown -R apache:apache /var/www/html/
+ chmod -R 755 /var/www/html/
+
+ cd /var/www/html/
+ find . -type d -exec chmod 0755 {} \;
+ find . -type f -exec chmod 0644 {} \;
+ 
+ 
+ ajustar as configurações de conexão
+ mv wp-config-sample.php wp-config.php
+
+ nano wp-config.php
+
+ ----------------------------------------    adicionar as linhas abaixo ----------------------------------------
+Change the DB_NAME, DB_USER, and DB_PASSWORD variables as shown below:
+
+define('FS_METHOD', 'direct');
+
+// ** MySQL settings - You can get this info from your web host ** //
+/** The name of the database for WordPress */
+define('DB_NAME', 'your-db-name');
+
+/** MySQL database username */
+define('DB_USER', 'your-db-name');
+
+/** MySQL database password */
+define('DB_PASSWORD', 'your-passwd');
+
+/** MySQL hostname */
+define('DB_HOST', 'localhost');
+
+/**#@+
+ * Authentication Unique Keys and Salts.
+ *
+ * Change these to different unique phrases!
+ * You can generate these using the {@link https://api.wordpress.org/secret-key/1.1/salt/ WordPress.org secret-key service}
+ * You can change these at any point in time to invalidate all existing cookies. This will force all users to have to log in again.
+ *
+ * @since 2.6.0
+ */
+define('AUTH_KEY',         '1l!aQACyTJBn&,D_hk8l4ICjLr$|4mO%_=2~0x5N6e@l{Znanmy|~ bsZRU`_=xP');
+define('SECURE_AUTH_KEY',  '2~[V]](Z3&zl)4E?R7Mazpv_P*HKS+<>MpaC&y&&L7#G9P4n_vrv($!B|DJVJDxs');
+define('LOGGED_IN_KEY',    '34G`,}L;h`AY7-a(x%H+EvUq5U1X3f2:FCQ[W01d._GU%oK-[K+ziR9X-a9klz, ');
+define('NONCE_KEY',        '/{h]bF tO7byh$AGPPq_>Ru>hEEbhYA%;kR+?>Te``A!>J!neQ$i0nbiR8rpDCjx');
+define('AUTH_SALT',        'ouW^l<YFQsad1(9p[8.4NK >nz5,#tcCVI+BS!B.po( wBss0~Pd5<N+&hKLQO`5');
+define('SECURE_AUTH_SALT', 'Z)33dSRcPPQ6 ;gt5/C&Hci{6V9^ziDc0&I.5DNl:aB!KV{}fpPm/c?50Z=>##5@');
+define('LOGGED_IN_SALT',   'C:*7McBcE!g%d6Eptb>vyw>24`f2jm>. a?[Pmfx)qap+~%XwX-r40u?RDN?nl1P');
+define('NONCE_SALT',       ')hBa%0m=x@B0=`jwd=(jc[$%;sw&QEuqYO4m`(UsR+bWM?u,CC.EAc9MsNQu/^@O');
+
+/**#@-*/
+
+-------------------------------------------------------------------------------------------------------------------------------------
+
+Regras para o firewall
+
+ firewall-cmd --permanent --zone=public --add-service=http
+ firewall-cmd --permanent --zone=public --add-service=https
+ firewall-cmd --reload
+ 
+esse comando é necessário para evitar problemas de acesso ao diretório (You don't have permission to access /index.php on this server.)
+chcon -R -t httpd_sys_content_t /var/www/html/
+chcon -t httpd_sys_rw_content_t /var/www/html/wp-content -R
+init 6
